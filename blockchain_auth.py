@@ -1,54 +1,90 @@
 import hashlib
 import time
+import secrets
 
 class BlockchainAuth:
     """
-    Simulated Blockchain-Based Remote Mutual Authentication (B-RMA) Protocol.
+    Enhanced B-RMA Protocol with Challenge-Response and BAN Logic hooks.
+    Ensures that only authorized IoT nodes participate in FedAvg.
     """
     def __init__(self):
-        self.ledger = {}  # Node_ID: Node_Metadata
-        self.authorized_nodes = set()
+        self.ledger = {}  # Node_ID: {public_key, last_nonce, status}
+        self.authorized_sessions = {} # Node_ID: session_expiry
         
     def register_node(self, node_id, public_key):
         """
-        Register a node in the blockchain ledger.
+        Phase 1: Registration. 
+        In BAN Logic: 'Trust Gate' establishes that the Server believes in Node's PK[cite: 84].
         """
-        timestamp = time.time()
-        registration_token = self._generate_token(node_id, public_key, timestamp)
         self.ledger[node_id] = {
             'public_key': public_key,
-            'token': registration_token,
-            'status': 'Registered'
+            'status': 'Registered',
+            'last_nonce': None
         }
-        print(f"Node {node_id} registered with token: {registration_token[:10]}...")
-        return registration_token
+        print(f"Blockchain Ledger Updated: Node {node_id} is now a trusted participant.")
 
-    def authenticate_node(self, node_id, token):
+    def initiate_challenge(self, node_id):
         """
-        Authenticate a node before participating in FL.
+        Phase 2: Mutual Authentication (Challenge).
+        Prevents Replay Attacks by generating a unique cryptographic Nonce.
         """
-        if node_id in self.ledger and self.ledger[node_id]['token'] == token:
-            self.authorized_nodes.add(node_id)
-            print(f"Node {node_id} authenticated successfully.")
-            return True
-        else:
-            print(f"Authentication failed for Node {node_id}.")
+        if node_id not in self.ledger:
+            return None
+        
+        # Generate a random 32-byte nonce
+        nonce = secrets.token_hex(32)
+        self.ledger[node_id]['last_nonce'] = nonce
+        return nonce
+
+    def verify_response(self, node_id, signed_nonce):
+        """
+        Phase 3: Verification.
+        BAN Logic Proof: If Server sees {Nonce} signed by PK, Server believes Node is 'Fresh'.
+        """
+        if node_id not in self.ledger:
             return False
+            
+        expected_nonce = self.ledger[node_id]['last_nonce']
+        
+        # In a real system, you'd verify the digital signature here.
+        # Simulation: We check if the response contains the hash of the nonce + PK.
+        valid_signature = self._simulate_sig_check(node_id, expected_nonce, signed_nonce)
+        
+        if valid_signature:
+            # Session valid for 1 hour (3600 seconds)
+            self.authorized_sessions[node_id] = time.time() + 3600
+            print(f"B-RMA Success: Node {node_id} authorized for current FL round.")
+            return True
+        
+        print(f"Security Alert: Authentication failed for {node_id}!")
+        return False
 
     def is_authorized(self, node_id):
-        return node_id in self.authorized_nodes
+        """Checks if the session is still fresh/valid."""
+        if node_id not in self.authorized_sessions:
+            return False
+        return time.time() < self.authorized_sessions[node_id]
 
-    def _generate_token(self, node_id, public_key, timestamp):
-        data = f"{node_id}{public_key}{timestamp}"
-        return hashlib.sha256(data.encode()).hexdigest()
+    def _simulate_sig_check(self, node_id, nonce, signature):
+        """Simulates RSA/ECC signature verification."""
+        pk = self.ledger[node_id]['public_key']
+        expected_sig = hashlib.sha256(f"{nonce}{pk}".encode()).hexdigest()
+        return signature == expected_sig
 
 if __name__ == "__main__":
+    # Example Workflow for the Research Paper
     b_auth = BlockchainAuth()
-    node_id = "node_01"
-    pub_key = "PUB_KEY_01"
+    client_id = "ESP32_Node_01"
     
-    token = b_auth.register_node(node_id, pub_key)
-    if b_auth.authenticate_node(node_id, token):
-        print("Success: Node is authorized to participate.")
-    else:
-        print("Error: Node is not authorized.")
+    # 1. Registration
+    b_auth.register_node(client_id, "ECC_PUBLIC_KEY_AUM_S00462031")
+    
+    # 2. Challenge-Response (The B-RMA "Trust Gate" [cite: 84])
+    challenge = b_auth.initiate_challenge(client_id)
+    
+    # Client 'signs' the challenge
+    mock_sig = hashlib.sha256(f"{challenge}ECC_PUBLIC_KEY_AUM_S00462031".encode()).hexdigest()
+    
+    # 3. Final Authorization
+    if b_auth.verify_response(client_id, mock_sig):
+        print("Protocol Verified: Node is authorized to upload weights.")

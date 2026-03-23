@@ -1,6 +1,8 @@
 torch
 torchvision
 tensorboard
+tqdm
 numpy
+sklearn
 scipy
 matplotlib
