@@ -15,6 +15,7 @@ class TransCRL(nn.Module):
             nn.Conv2d(16, 32, kernel_size=3, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
+            nn.Dropout(0.3), # Added to prevent overfitting
             nn.MaxPool2d(kernel_size=(2, 1)) # Result: (B, 32, 8, 63)
         )
         
@@ -42,7 +43,7 @@ class TransCRL(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Dropout(0.3), # Added to prevent overfitting on small CSI datasets
+            nn.Dropout(0.5), # Added to prevent overfitting on small CSI datasets
             nn.Linear(64, num_classes)
         )
 

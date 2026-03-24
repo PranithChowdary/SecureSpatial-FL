@@ -1,2 +1,3 @@
-venvdatasets/
+venv
+datasets/
 *.pth
