@@ -41,9 +41,9 @@ def main():
     # 1. Configuration
     config = {
         "num_clients": 5,           # Number of IoT nodes 
-        "global_rounds": 10,        # Total communication rounds 
+        "global_rounds": 5,        # Total communication rounds 
         "local_epochs": 10,          # Epochs per client per round
-        "batch_size": 32,           # Training batch size
+        "batch_size": 64,           # Training batch size
         "learning_rate": 0.001,    # Initial learning rate
         "fedprox_mu": 0.5,         # Proximal term constant (0 for FedAvg) 
         "data_samples": 1200,       # Total samples for simulation
