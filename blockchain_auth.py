@@ -21,7 +21,7 @@ class BlockchainAuth:
             'status': 'Registered',
             'last_nonce': None
         }
-        print(f"Blockchain Ledger Updated: Node {node_id} is now a trusted participant.")
+        print(f"\nBlockchain Ledger Updated: Node {node_id} is now a trusted participant.")
 
     def initiate_challenge(self, node_id):
         """
@@ -87,4 +87,4 @@ if __name__ == "__main__":
     
     # 3. Final Authorization
     if b_auth.verify_response(client_id, mock_sig):
-        print("Protocol Verified: Node is authorized to upload weights.")
+        print(f"\nProtocol Verified: Node {client_id} is authorized to upload weights.")
